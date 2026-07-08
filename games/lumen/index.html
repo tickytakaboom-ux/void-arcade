@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>LUMEN — Jeu d'arcade</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap');
+    :root{--ink:#05060a;--paper:#f6f2e8;--lime:#d8ff3e;--pink:#ff4778;--cyan:#5ee7ff}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:'DM Mono',monospace}
+    canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+    .grain{position:fixed;inset:0;pointer-events:none;opacity:.07;z-index:5;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E")}
+    .hud{position:fixed;inset:0;z-index:4;pointer-events:none;padding:28px 34px;display:flex;flex-direction:column;justify-content:space-between}
+    .top{display:flex;justify-content:space-between;align-items:flex-start}.brand{font-family:Syne,sans-serif;font-weight:800;font-size:18px;letter-spacing:.12em}.brand i{color:var(--lime);font-style:normal}.score{text-align:right}.score b{font-family:Syne,sans-serif;font-size:34px;line-height:.8}.score small{display:block;opacity:.5;margin-top:8px;letter-spacing:.15em}
+    .bottom{display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.charge{width:min(260px,42vw)}.track{height:5px;background:#ffffff20;margin-top:8px}.fill{height:100%;width:100%;background:var(--lime);box-shadow:0 0 14px var(--lime);transition:width .08s}.status{text-align:right;opacity:.65}
+    .screen{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(5,6,10,.52);backdrop-filter:blur(9px);transition:opacity .35s}.screen.hidden{opacity:0;pointer-events:none}.card{width:min(680px,90vw);padding:clamp(28px,6vw,64px);border:1px solid #ffffff26;background:#090a10d9;box-shadow:0 30px 100px #0008;position:relative}.eyebrow{color:var(--lime);letter-spacing:.18em;text-transform:uppercase;font-size:11px}.title{font-family:Syne,sans-serif;font-size:clamp(58px,12vw,120px);font-weight:800;line-height:.72;letter-spacing:-.07em;margin:32px 0}.title span{display:block;color:transparent;-webkit-text-stroke:1px var(--paper);margin-left:12%}.desc{max-width:470px;color:#c8c6c0;font-size:13px;line-height:1.7}.legend{display:flex;gap:26px;flex-wrap:wrap;margin:30px 0;font-size:11px}.key{border:1px solid #ffffff35;padding:7px 10px;color:white}.action{pointer-events:auto;border:0;background:var(--lime);color:#080a05;font:700 13px Syne,sans-serif;letter-spacing:.12em;padding:16px 25px;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:.15s}.action:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--pink)}
+    .final{font-family:Syne,sans-serif;font-size:56px;font-weight:800;margin:18px 0 6px}.best{color:var(--lime);font-size:12px;margin-bottom:28px}.corner{position:absolute;right:22px;top:18px;color:#ffffff40;font-size:10px}
+    @media(max-width:600px){.hud{padding:18px}.status{display:none}.title{margin:25px 0}.card{padding:32px 24px}.legend{gap:8px}.score b{font-size:28px}}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas><div class="grain"></div>
+  <div class="hud">
+    <div class="top"><div class="brand">LUMEN<i>•</i></div><div class="score"><b id="score">00000</b><small>RECORD <span id="high">00000</span></small></div></div>
+    <div class="bottom"><div class="charge">IMPULSION <span id="ready">PRÊTE</span><div class="track"><div class="fill" id="fill"></div></div></div><div class="status">Attrapez la lumière<br>Évitez le vide</div></div>
+  </div>
+  <div class="screen" id="start">
+    <div class="card"><span class="corner">EXPÉRIENCE 01</span><div class="eyebrow">Une fuite dans le noir</div><div class="title">LU<span>MEN</span></div><p class="desc">Vous êtes la dernière étincelle. Collectez les fragments lumineux, enchaînez les combos et survivez aux formes du vide.</p><div class="legend"><span><span class="key">ZQSD</span> bouger</span><span><span class="key">ESPACE</span> impulsion</span><span><span class="key">SOURIS</span> guider</span></div><button class="action" id="play">ENTRER DANS LE VIDE →</button></div>
+  </div>
+  <div class="screen hidden" id="over">
+    <div class="card"><span class="corner">SIGNAL PERDU</span><div class="eyebrow">Le vide vous a rattrapé</div><div class="final" id="final">0</div><div class="best" id="bestmsg">NOUVEAU RECORD</div><button class="action" id="again">RECOMMENCER →</button></div>
+  </div>
+  <script>
+  (()=>{
+    const c=document.querySelector('#game'),x=c.getContext('2d'),S=id=>document.querySelector(id);
+    let W,H,dpr,playing=false,paused=false,t=0,last=0,score=0,combo=1,spawn=0,shake=0,high=+(localStorage.lumenHigh||0);
+    let player,sparks=[],foes=[],particles=[],rings=[],keys={},pointer={x:0,y:0,active:false};
+    const scoreEl=S('#score'),highEl=S('#high'),fill=S('#fill'),ready=S('#ready'); highEl.textContent=pad(high);
+    function resize(){dpr=Math.min(devicePixelRatio,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
+    function pad(n){return Math.floor(n).toString().padStart(5,'0')}
+    function rand(a,b){return a+Math.random()*(b-a)} function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+    function reset(){player={x:W/2,y:H/2,vx:0,vy:0,r:9,energy:100,inv:0,trail:[]};sparks=[];foes=[];particles=[];rings=[];score=0;combo=1;spawn=0;t=0;playing=true;for(let i=0;i<5;i++)addSpark();updateHud()}
+    function addSpark(){let p;do{p={x:rand(55,W-55),y:rand(70,H-70),r:rand(3,6),phase:rand(0,7)}}while(player&&dist(p,player)<130);sparks.push(p)}
+    function addFoe(){let side=Math.floor(rand(0,4)),p={r:rand(13,25),speed:rand(.65,1.15)+Math.min(score/16000,1.2),phase:rand(0,7)};if(side<2){p.x=side?W+40:-40;p.y=rand(50,H-50)}else{p.x=rand(50,W-50);p.y=side===2?-40:H+40}foes.push(p)}
+    function burst(px,py,color,n=18){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),s=rand(1,6);particles.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,r:rand(1,4),color})}}
+    function dash(){if(!playing||player.energy<100)return;let dx=player.vx,dy=player.vy;if(pointer.active){dx=pointer.x-player.x;dy=pointer.y-player.y}let m=Math.hypot(dx,dy)||1;player.vx+=dx/m*17;player.vy+=dy/m*17;player.energy=0;player.inv=32;shake=8;rings.push({x:player.x,y:player.y,r:8,life:1});burst(player.x,player.y,'#d8ff3e',26);beep(160,.08,'sawtooth')}
+    let ac;function beep(freq,dur,type='sine'){try{ac=ac||new AudioContext();let o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(.045,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+dur)}catch(e){}}
+    function update(dt){t+=dt;player.inv=Math.max(0,player.inv-dt*60);player.energy=Math.min(100,player.energy+dt*22);let ax=0,ay=0;if(keys.a||keys.q||keys.ArrowLeft)ax--;if(keys.d||keys.ArrowRight)ax++;if(keys.w||keys.z||keys.ArrowUp)ay--;if(keys.s||keys.ArrowDown)ay++;if(pointer.active){let dx=pointer.x-player.x,dy=pointer.y-player.y,m=Math.hypot(dx,dy);if(m>15){ax+=dx/m;ay+=dy/m}}let m=Math.hypot(ax,ay)||1;player.vx+=ax/m*.72*dt*60;player.vy+=ay/m*.72*dt*60;player.vx*=Math.pow(.9,dt*60);player.vy*=Math.pow(.9,dt*60);player.x+=player.vx*dt*60;player.y+=player.vy*dt*60;player.x=Math.max(18,Math.min(W-18,player.x));player.y=Math.max(18,Math.min(H-18,player.y));player.trail.push({x:player.x,y:player.y,life:1});if(player.trail.length>30)player.trail.shift();player.trail.forEach(p=>p.life-=dt*2.4);
+      spawn-=dt;if(spawn<=0){addFoe();spawn=Math.max(.38,1.35-score/22000)}
+      sparks.forEach((s,i)=>{s.phase+=dt*3;if(dist(s,player)<player.r+s.r+8){score+=100*combo;combo=Math.min(9,combo+1);burst(s.x,s.y,'#5ee7ff',14);rings.push({x:s.x,y:s.y,r:5,life:1});sparks.splice(i,1);addSpark();if(sparks.length<5)addSpark();beep(500+combo*70,.06)}});
+      foes.forEach((f,i)=>{let dx=player.x-f.x,dy=player.y-f.y,m=Math.hypot(dx,dy)||1;f.x+=dx/m*f.speed*dt*60;f.y+=dy/m*f.speed*dt*60;f.phase+=dt*2;if(dist(f,player)<f.r+player.r){if(player.inv>0){score+=250;burst(f.x,f.y,'#ff4778',25);foes.splice(i,1);shake=12;beep(100,.12,'square')}else end()}});
+      particles.forEach((p,i)=>{p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.vx*=.96;p.vy*=.96;p.life-=dt*1.7;if(p.life<=0)particles.splice(i,1)});rings.forEach((r,i)=>{r.r+=dt*90;r.life-=dt*1.8;if(r.life<=0)rings.splice(i,1)});score+=dt*12;shake*=.88;updateHud()}
+    function updateHud(){scoreEl.textContent=pad(score);fill.style.width=player?player.energy+'%':'100%';ready.textContent=player&&player.energy>=100?'PRÊTE':Math.floor(player?.energy||0)+'%'}
+    function end(){playing=false;burst(player.x,player.y,'#f6f2e8',55);shake=20;let isBest=score>high;if(isBest){high=Math.floor(score);localStorage.lumenHigh=high}highEl.textContent=pad(high);S('#final').textContent=pad(score)+' PTS';S('#bestmsg').textContent=isBest?'NOUVEAU RECORD':'RECORD : '+pad(high);setTimeout(()=>S('#over').classList.remove('hidden'),450);beep(60,.5,'sawtooth')}
+    function draw(){x.save();x.clearRect(0,0,W,H);x.fillStyle='#05060a';x.fillRect(0,0,W,H);let ox=shake?rand(-shake,shake):0,oy=shake?rand(-shake,shake):0;x.translate(ox,oy);
+      x.strokeStyle='#ffffff08';x.lineWidth=1;let grid=55,px=(t*8)%grid,py=(t*5)%grid;for(let i=-grid;i<W+grid;i+=grid){x.beginPath();x.moveTo(i+px,0);x.lineTo(i+px,H);x.stroke()}for(let i=-grid;i<H+grid;i+=grid){x.beginPath();x.moveTo(0,i+py);x.lineTo(W,i+py);x.stroke()}
+      rings.forEach(r=>{x.globalAlpha=r.life;x.strokeStyle='#d8ff3e';x.lineWidth=2;x.beginPath();x.arc(r.x,r.y,r.r,0,7);x.stroke()});x.globalAlpha=1;
+      sparks.forEach(s=>{let rr=s.r+Math.sin(s.phase)*2,g=x.createRadialGradient(s.x,s.y,0,s.x,s.y,rr*6);g.addColorStop(0,'#fff');g.addColorStop(.16,'#5ee7ff');g.addColorStop(1,'transparent');x.fillStyle=g;x.beginPath();x.arc(s.x,s.y,rr*6,0,7);x.fill();x.fillStyle='#fff';x.fillRect(s.x-1,s.y-1,2,2)});
+      foes.forEach(f=>{x.save();x.translate(f.x,f.y);x.rotate(f.phase);x.fillStyle='#ff47781c';x.strokeStyle='#ff4778';x.lineWidth=2;x.shadowBlur=16;x.shadowColor='#ff4778';x.beginPath();for(let i=0;i<8;i++){let a=i/8*Math.PI*2,r=i%2?f.r*.58:f.r;x.lineTo(Math.cos(a)*r,Math.sin(a)*r)}x.closePath();x.fill();x.stroke();x.restore()});
+      if(player){player.trail.forEach((p,i)=>{x.globalAlpha=Math.max(0,p.life)*i/player.trail.length*.45;x.fillStyle='#d8ff3e';x.beginPath();x.arc(p.x,p.y,player.r*i/player.trail.length,0,7);x.fill()});x.globalAlpha=1;let g=x.createRadialGradient(player.x,player.y,0,player.x,player.y,55);g.addColorStop(0,player.inv?'#fff':'#d8ff3e');g.addColorStop(.2,'#d8ff3e88');g.addColorStop(1,'transparent');x.fillStyle=g;x.beginPath();x.arc(player.x,player.y,55,0,7);x.fill();x.fillStyle='#f8ffe2';x.shadowBlur=20;x.shadowColor='#d8ff3e';x.beginPath();x.arc(player.x,player.y,player.r+(player.inv?Math.sin(t*30)*3:0),0,7);x.fill();x.shadowBlur=0}
+      particles.forEach(p=>{x.globalAlpha=Math.max(0,p.life);x.fillStyle=p.color;x.fillRect(p.x,p.y,p.r,p.r)});x.globalAlpha=1;x.restore()}
+    function loop(now){let dt=Math.min((now-last)/1000,.033)||0;last=now;if(playing&&!paused)update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+    addEventListener('keydown',e=>{if(e.key==='Escape'){parent.postMessage('togglePause','*');return}keys[e.key.toLowerCase()]=true;keys[e.key]=true;if(e.code==='Space'){e.preventDefault();dash()}if(e.key==='Enter'&&!playing)startGame()});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;keys[e.key]=false});
+    c.addEventListener('pointermove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;if(e.pointerType==='mouse')pointer.active=true});c.addEventListener('pointerdown',e=>{pointer.x=e.clientX;pointer.y=e.clientY;pointer.active=true;if(e.pointerType!=='mouse')dash()});c.addEventListener('pointerup',e=>{if(e.pointerType!=='mouse')pointer.active=false});
+    function startGame(){S('#start').classList.add('hidden');S('#over').classList.add('hidden');reset();beep(240,.12)}S('#play').onclick=startGame;S('#again').onclick=startGame;addEventListener('message',e=>{if(e.data==='pause')paused=true;if(e.data==='resume')paused=false});addEventListener('message',e=>{if(e.data==='pause')paused=true;if(e.data==='resume')paused=false});
+  })();
+  </script>
+</body>
+</html>

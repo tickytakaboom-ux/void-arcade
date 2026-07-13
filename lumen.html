@@ -13,7 +13,7 @@
     .hud{position:fixed;inset:0;z-index:4;pointer-events:none;padding:28px 34px;display:flex;flex-direction:column;justify-content:space-between}
     .top{display:flex;justify-content:space-between;align-items:flex-start}.brand{font-family:Syne,sans-serif;font-weight:800;font-size:18px;letter-spacing:.12em}.brand i{color:var(--lime);font-style:normal}.score{text-align:right}.score b{font-family:Syne,sans-serif;font-size:34px;line-height:.8}.score small{display:block;opacity:.5;margin-top:8px;letter-spacing:.15em}
     .bottom{display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.charge{width:min(260px,42vw)}.track{height:5px;background:#ffffff20;margin-top:8px}.fill{height:100%;width:100%;background:var(--lime);box-shadow:0 0 14px var(--lime);transition:width .08s}.status{text-align:right;opacity:.65}
-    .screen{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(5,6,10,.52);backdrop-filter:blur(9px);transition:opacity .35s}.screen.hidden{opacity:0;pointer-events:none}.card{width:min(680px,90vw);padding:clamp(28px,6vw,64px);border:1px solid #ffffff26;background:#090a10d9;box-shadow:0 30px 100px #0008;position:relative}.eyebrow{color:var(--lime);letter-spacing:.18em;text-transform:uppercase;font-size:11px}.title{font-family:Syne,sans-serif;font-size:clamp(58px,12vw,120px);font-weight:800;line-height:.72;letter-spacing:-.07em;margin:32px 0}.title span{display:block;color:transparent;-webkit-text-stroke:1px var(--paper);margin-left:12%}.desc{max-width:470px;color:#c8c6c0;font-size:13px;line-height:1.7}.legend{display:flex;gap:26px;flex-wrap:wrap;margin:30px 0;font-size:11px}.key{border:1px solid #ffffff35;padding:7px 10px;color:white}.action{pointer-events:auto;border:0;background:var(--lime);color:#080a05;font:700 13px Syne,sans-serif;letter-spacing:.12em;padding:16px 25px;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:.15s}.action:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--pink)}
+    .screen{position:fixed;inset:0;z-index:6;display:grid;place-items:center;background:rgba(5,6,10,.52);backdrop-filter:blur(9px);transition:opacity .35s}.screen.hidden{opacity:0;pointer-events:none}.card{width:min(680px,90vw);padding:clamp(28px,6vw,64px);border:1px solid #ffffff26;background:#090a10d9;box-shadow:0 30px 100px #0008;position:relative}.eyebrow{color:var(--lime);letter-spacing:.18em;text-transform:uppercase;font-size:11px}.title{font-family:Syne,sans-serif;font-size:clamp(58px,12vw,120px);font-weight:800;line-height:.72;letter-spacing:-.07em;margin:32px 0}.title span{display:block;color:transparent;-webkit-text-stroke:1px var(--paper);margin-left:12%}.desc{max-width:470px;color:#c8c6c0;font-size:13px;line-height:1.7}.lore{margin:18px 0 0;max-width:520px;color:#d8ff3e;font-size:11px;line-height:1.65;letter-spacing:.06em;text-transform:uppercase;border-left:2px solid var(--pink);padding-left:14px}.legend{display:flex;gap:26px;flex-wrap:wrap;margin:30px 0;font-size:11px}.key{border:1px solid #ffffff35;padding:7px 10px;color:white}.action{pointer-events:auto;border:0;background:var(--lime);color:#080a05;font:700 13px Syne,sans-serif;letter-spacing:.12em;padding:16px 25px;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:.15s}.action:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--pink)}
     .final{font-family:Syne,sans-serif;font-size:56px;font-weight:800;margin:18px 0 6px}.best{color:var(--lime);font-size:12px;margin-bottom:28px}.corner{position:absolute;right:22px;top:18px;color:#ffffff40;font-size:10px}
     @media(max-width:600px){.hud{padding:18px}.status{display:none}.title{margin:25px 0}.card{padding:32px 24px}.legend{gap:8px}.score b{font-size:28px}}
   </style>
@@ -22,19 +22,33 @@
   <canvas id="game"></canvas><div class="grain"></div>
   <div class="hud">
     <div class="top"><div class="brand">LUMEN<i>•</i></div><div class="score"><b id="score">00000</b><small>RECORD <span id="high">00000</span></small></div></div>
-    <div class="bottom"><div class="charge">IMPULSION <span id="ready">PRÊTE</span><div class="track"><div class="fill" id="fill"></div></div></div><div class="status">Attrapez la lumière<br>Évitez le vide</div></div>
+    <div class="bottom"><div class="charge">IMPULSION <span id="ready">PRÊTE</span><div class="track"><div class="fill" id="fill"></div></div></div><div class="status">Rallumez l’archive<br>Évitez les ombres</div></div>
   </div>
   <div class="screen" id="start">
-    <div class="card"><span class="corner">EXPÉRIENCE 01</span><div class="eyebrow">Une fuite dans le noir</div><div class="title">LU<span>MEN</span></div><p class="desc">Vous êtes la dernière étincelle. Collectez les fragments lumineux, enchaînez les combos et survivez aux formes du vide.</p><div class="legend"><span><span class="key">ZQSD</span> bouger</span><span><span class="key">ESPACE</span> impulsion</span><span><span class="key">SOURIS</span> guider</span></div><button class="action" id="play">ENTRER DANS LE VIDE →</button></div>
+    <div class="card"><span class="corner">ARCHIVE 01 / STATION ORPHEUS</span><div class="eyebrow">Dernière transmission reçue</div><div class="title">LU<span>MEN</span></div><p class="desc">La station Orpheus s’est éteinte au bord du vide. Il ne reste qu’un noyau vivant : Lumen, une étincelle chargée de rallumer les fragments de mémoire avant que les ombres ne les dévorent.</p><p class="lore">PROTOCOLE LUMEN : chaque fragment récupéré réveille une seconde d’humanité. Chaque impact efface une archive.</p><div class="legend"><span><span class="key">ZQSD</span> bouger</span><span><span class="key">ESPACE</span> impulsion</span><span><span class="key">SOURIS</span> guider</span></div><button class="action" id="play">RALLUMER ORPHEUS →</button></div>
   </div>
   <div class="screen hidden" id="over">
-    <div class="card"><span class="corner">SIGNAL PERDU</span><div class="eyebrow">Le vide vous a rattrapé</div><div class="final" id="final">0</div><div class="best" id="bestmsg">NOUVEAU RECORD</div><button class="action" id="again">RECOMMENCER →</button></div>
+    <div class="card"><span class="corner">SIGNAL PERDU</span><div class="eyebrow" id="deathline">Le vide vous a rattrapé</div><div class="final" id="final">0</div><p class="desc" id="loremsg">Une archive s’est tue dans le noir.</p><div class="best" id="bestmsg">NOUVEAU RECORD</div><button class="action" id="again">RECOMMENCER →</button></div>
   </div>
   <script>
   (()=>{
     const c=document.querySelector('#game'),x=c.getContext('2d'),S=id=>document.querySelector(id);
     let W,H,dpr,playing=false,paused=false,t=0,last=0,score=0,combo=1,spawn=0,shake=0,high=+(localStorage.lumenHigh||0);
     let player,sparks=[],foes=[],particles=[],rings=[],keys={},pointer={x:0,y:0,active:false};
+    const loreLines=[
+      'ARCHIVE 07 : le jardin hydroponique chante encore dans les circuits.',
+      'ARCHIVE 12 : un rire d’enfant tourne en boucle près du réacteur froid.',
+      'ARCHIVE 19 : Orpheus n’est pas morte. Elle attend une lumière assez têtue.',
+      'ARCHIVE 23 : les ombres imitent les voix pour attirer les derniers vivants.',
+      'ARCHIVE 31 : chaque fragment rallumé dessine une carte vers le cœur de la station.'
+    ];
+    const deathLines=[
+      'Le vide a refermé la station.',
+      'Une mémoire vient de disparaître.',
+      'Lumen vacille, mais Orpheus écoute encore.',
+      'Les ombres reprennent le couloir.',
+      'Signal brisé. Archive incomplète.'
+    ];
     const scoreEl=S('#score'),highEl=S('#high'),fill=S('#fill'),ready=S('#ready'); highEl.textContent=pad(high);
     function resize(){dpr=Math.min(devicePixelRatio,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
     function pad(n){return Math.floor(n).toString().padStart(5,'0')}
@@ -51,7 +65,7 @@
       foes.forEach((f,i)=>{let dx=player.x-f.x,dy=player.y-f.y,m=Math.hypot(dx,dy)||1;f.x+=dx/m*f.speed*dt*60;f.y+=dy/m*f.speed*dt*60;f.phase+=dt*2;if(dist(f,player)<f.r+player.r){if(player.inv>0){score+=250;burst(f.x,f.y,'#ff4778',25);foes.splice(i,1);shake=12;beep(100,.12,'square')}else end()}});
       particles.forEach((p,i)=>{p.x+=p.vx*dt*60;p.y+=p.vy*dt*60;p.vx*=.96;p.vy*=.96;p.life-=dt*1.7;if(p.life<=0)particles.splice(i,1)});rings.forEach((r,i)=>{r.r+=dt*90;r.life-=dt*1.8;if(r.life<=0)rings.splice(i,1)});score+=dt*12;shake*=.88;updateHud()}
     function updateHud(){scoreEl.textContent=pad(score);fill.style.width=player?player.energy+'%':'100%';ready.textContent=player&&player.energy>=100?'PRÊTE':Math.floor(player?.energy||0)+'%'}
-    function end(){playing=false;burst(player.x,player.y,'#f6f2e8',55);shake=20;let isBest=score>high;if(isBest){high=Math.floor(score);localStorage.lumenHigh=high}highEl.textContent=pad(high);S('#final').textContent=pad(score)+' PTS';S('#bestmsg').textContent=isBest?'NOUVEAU RECORD':'RECORD : '+pad(high);setTimeout(()=>S('#over').classList.remove('hidden'),450);beep(60,.5,'sawtooth')}
+    function end(){playing=false;burst(player.x,player.y,'#f6f2e8',55);shake=20;let isBest=score>high;if(isBest){high=Math.floor(score);localStorage.lumenHigh=high}highEl.textContent=pad(high);S('#final').textContent=pad(score)+' PTS';S('#deathline').textContent=deathLines[Math.floor(Math.random()*deathLines.length)];S('#loremsg').textContent=loreLines[Math.floor(Math.random()*loreLines.length)];S('#bestmsg').textContent=isBest?'NOUVEAU RECORD':'RECORD : '+pad(high);setTimeout(()=>S('#over').classList.remove('hidden'),450);beep(60,.5,'sawtooth')}
     function draw(){x.save();x.clearRect(0,0,W,H);x.fillStyle='#05060a';x.fillRect(0,0,W,H);let ox=shake?rand(-shake,shake):0,oy=shake?rand(-shake,shake):0;x.translate(ox,oy);
       x.strokeStyle='#ffffff08';x.lineWidth=1;let grid=55,px=(t*8)%grid,py=(t*5)%grid;for(let i=-grid;i<W+grid;i+=grid){x.beginPath();x.moveTo(i+px,0);x.lineTo(i+px,H);x.stroke()}for(let i=-grid;i<H+grid;i+=grid){x.beginPath();x.moveTo(0,i+py);x.lineTo(W,i+py);x.stroke()}
       rings.forEach(r=>{x.globalAlpha=r.life;x.strokeStyle='#d8ff3e';x.lineWidth=2;x.beginPath();x.arc(r.x,r.y,r.r,0,7);x.stroke()});x.globalAlpha=1;

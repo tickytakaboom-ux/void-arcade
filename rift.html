@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>ECHO RIFT — VOID ARCADE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+    :root{--bg:#07080d;--paper:#f4f0e8;--acid:#d9ff3e;--pink:#ff315f;--cyan:#54e5ff;--violet:#7f5cff}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--paper);font-family:'DM Mono',monospace}
+    canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:none}
+    .grain{position:fixed;inset:0;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E")}
+    .hud{position:fixed;inset:0;z-index:2;pointer-events:none;padding:26px 32px;display:flex;flex-direction:column;justify-content:space-between}
+    .top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.brand{font:800 18px Syne;letter-spacing:.12em}.brand i{font-style:normal;color:var(--cyan)}.score{text-align:right}.score b{display:block;font:800 34px/.82 Syne}.score small,.tiny{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.65}.bottom{align-items:flex-end}.lives{display:flex;gap:8px}.life{width:18px;height:18px;border:1px solid var(--pink);background:var(--pink);box-shadow:0 0 14px #ff315f88;transform:skew(-12deg)}.life.off{background:transparent;box-shadow:none;opacity:.35}.status{text-align:right;max-width:300px;line-height:1.55;color:#ffffff9a}
+    .screen{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(7,8,13,.58);backdrop-filter:blur(10px);transition:.3s}.screen.hidden{opacity:0;pointer-events:none}.card{position:relative;width:min(720px,90vw);padding:clamp(28px,6vw,62px);border:1px solid #ffffff25;background:#0b0c13e6;box-shadow:0 28px 90px #0008;overflow:hidden}.card:before{content:'';position:absolute;inset:-30%;background:linear-gradient(120deg,transparent 42%,#54e5ff18 50%,transparent 58%);animation:sweep 2.2s linear infinite}.card>*{position:relative}.corner{position:absolute;right:22px;top:18px;color:#ffffff45;font-size:10px;letter-spacing:.14em}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}.title{font:800 clamp(58px,12vw,116px)/.74 Syne;letter-spacing:-.08em;margin:28px 0}.title span{display:block;color:transparent;-webkit-text-stroke:1px var(--paper);margin-left:13%}.desc{max-width:520px;color:#c9c7c1;font-size:13px;line-height:1.7}.legend{display:flex;gap:14px;flex-wrap:wrap;margin:30px 0}.key{border:1px solid #ffffff36;padding:8px 10px;font-size:11px}.action{pointer-events:auto;border:0;background:var(--cyan);color:#061014;font:800 12px Syne;letter-spacing:.14em;padding:16px 24px;cursor:pointer;box-shadow:6px 6px 0 var(--pink);transition:.15s}.action:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--pink)}.final{font:800 58px Syne;margin:16px 0 6px}.best{color:var(--acid);font-size:12px;margin:0 0 28px}@keyframes sweep{to{transform:translateX(25%)}}@media(max-width:600px){.hud{padding:17px}.status{display:none}.score b{font-size:28px}.card{padding:32px 24px}.legend{gap:8px}}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas><div class="grain"></div>
+  <div class="hud">
+    <div class="top"><div><div class="brand">ECHO<i>•</i>RIFT</div><div class="tiny">Protocole anneau / 07</div></div><div class="score"><b id="score">00000</b><small>RECORD <span id="best">00000</span></small></div></div>
+    <div class="bottom"><div><div class="tiny">INTÉGRITÉ DU NOYAU</div><div class="lives" id="lives"></div></div><div class="status">Captez les signaux cyan.<br>Ne laissez pas les glitches roses toucher le cœur.</div></div>
+  </div>
+  <div class="screen" id="start">
+    <div class="card"><span class="corner">DROP_07</span><div class="eyebrow">Faille sonore détectée</div><div class="title">ECHO<span>RIFT</span></div><p class="desc">Une faille pulse au centre de l’arcade. Tournez autour du noyau, absorbez les échos propres et déviez les signaux corrompus avant qu’ils ne brisent la boucle.</p><div class="legend"><span class="key">Q / D</span><span class="key">← / →</span><span class="key">SOURIS / TOUCH</span></div><button class="action" id="play">SYNCHRONISER →</button></div>
+  </div>
+  <div class="screen hidden" id="over">
+    <div class="card"><span class="corner">RIFT CLOSED</span><div class="eyebrow" id="result">Signal interrompu</div><div class="final" id="final">00000</div><div class="best" id="bestmsg">NOUVEAU RECORD</div><button class="action" id="again">RECOMMENCER →</button></div>
+  </div>
+  <script>
+  (()=> {
+    const c=document.querySelector('#game'),x=c.getContext('2d'),S=q=>document.querySelector(q);
+    let W,H,dpr,last=0,t=0,playing=false,paused=false,angle=0,targetAngle=0,score=0,best=+(localStorage.riftBest||0),lives=3,spawn=.8,items=[],bits=[],shock=0,keys={};
+    const scoreEl=S('#score'),bestEl=S('#best'),lifeBox=S('#lives');bestEl.textContent=pad(best);
+    function pad(n){return Math.floor(n).toString().padStart(5,'0')}function rand(a,b){return a+Math.random()*(b-a)}function wrap(a){while(a<0)a+=Math.PI*2;while(a>Math.PI*2)a-=Math.PI*2;return a}function ad(a,b){let d=Math.abs(wrap(a)-wrap(b));return Math.min(d,Math.PI*2-d)}
+    function resize(){dpr=Math.min(devicePixelRatio,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}addEventListener('resize',resize);resize();
+    function reset(){playing=true;S('#start').classList.add('hidden');S('#over').classList.add('hidden');angle=-Math.PI/2;targetAngle=angle;score=0;lives=3;spawn=.35;items=[];bits=[];shock=0;t=0;for(let i=0;i<3;i++)spawnItem(.7+i*.4);hud();beep(240,.12,'sawtooth')}
+    function spawnItem(delay=0){let a=rand(0,Math.PI*2),bad=Math.random()<Math.min(.28+score/24000,.54);items.push({a,r:Math.max(W,H)*.62+rand(40,90),bad,s:rand(82,118)+score/180,rot:rand(-1,1),delay})}
+    function hud(){scoreEl.textContent=pad(score);bestEl.textContent=pad(best);lifeBox.innerHTML='';for(let i=0;i<3;i++){let d=document.createElement('i');d.className='life'+(i>=lives?' off':'');lifeBox.appendChild(d)}}
+    function burst(a,r,color,n=18){let cx=W/2+Math.cos(a)*r,cy=H/2+Math.sin(a)*r;for(let i=0;i<n;i++){let p=rand(0,Math.PI*2),s=rand(1,5);bits.push({x:cx,y:cy,vx:Math.cos(p)*s,vy:Math.sin(p)*s,life:1,color,sz:rand(1,4)})}}
+    let ac;function beep(f,d,type='sine'){try{ac=ac||new AudioContext();let o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.045,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+    function hitCore(){lives--;shock=22;beep(70,.18,'square');hud();if(lives<=0)end()}
+    function end(){playing=false;let isBest=score>best;if(isBest){best=Math.floor(score);localStorage.riftBest=best}bestEl.textContent=pad(best);S('#final').textContent=pad(score);S('#result').textContent=isBest?'Faille maîtrisée':'Le noyau a cédé';S('#bestmsg').textContent=isBest?'NOUVEAU RECORD':'RECORD : '+pad(best);setTimeout(()=>S('#over').classList.remove('hidden'),350)}
+    function update(dt){t+=dt;let dir=(keys.d||keys.ArrowRight?1:0)-(keys.q||keys.a||keys.ArrowLeft?1:0);if(dir)targetAngle+=dir*dt*4.6;let diff=Math.atan2(Math.sin(targetAngle-angle),Math.cos(targetAngle-angle));angle+=diff*Math.min(1,dt*13);score+=dt*(14+lives*3);spawn-=dt;if(spawn<=0){spawnItem();spawn=Math.max(.32,.85-score/26000)}
+      items.forEach((it,i)=>{if(it.delay>0){it.delay-=dt;return}it.r-=it.s*dt;it.a+=it.rot*dt*.18;let ring=Math.min(W,H)*.22,guard=.22+Math.min(score/42000,.12);if(it.r<ring+18&&ad(it.a,angle)<guard){burst(it.a,it.r,it.bad? '#ff315f':'#54e5ff',it.bad?26:18);items.splice(i,1);if(it.bad){score+=190;shock=8;beep(110,.08,'square')}else{score+=420;beep(520,.06,'triangle')}}else if(it.r<24){burst(it.a,it.r,it.bad?'#ff315f':'#d9ff3e',28);items.splice(i,1);it.bad?hitCore():(score=Math.max(0,score-240),beep(150,.08))}});
+      bits.forEach((b,i)=>{b.x+=b.vx*dt*60;b.y+=b.vy*dt*60;b.vx*=.96;b.vy*=.96;b.life-=dt*1.8;if(b.life<=0)bits.splice(i,1)});shock*=.88;hud()}
+    function draw(){x.save();x.clearRect(0,0,W,H);x.fillStyle='#07080d';x.fillRect(0,0,W,H);let ox=shock?rand(-shock,shock):0,oy=shock?rand(-shock,shock):0;x.translate(ox,oy);let cx=W/2,cy=H/2,ring=Math.min(W,H)*.22;
+      x.strokeStyle='#ffffff0b';x.lineWidth=1;for(let r=ring;r<Math.max(W,H);r+=56){x.beginPath();x.arc(cx,cy,r,0,7);x.stroke()}for(let i=0;i<24;i++){let a=i/24*Math.PI*2+t*.04;x.beginPath();x.moveTo(cx+Math.cos(a)*ring*.4,cy+Math.sin(a)*ring*.4);x.lineTo(cx+Math.cos(a)*Math.max(W,H),cy+Math.sin(a)*Math.max(W,H));x.stroke()}
+      items.forEach(it=>{if(it.delay>0)return;let px=cx+Math.cos(it.a)*it.r,py=cy+Math.sin(it.a)*it.r;x.save();x.translate(px,py);x.rotate(it.a+t);x.shadowBlur=18;x.shadowColor=it.bad?'#ff315f':'#54e5ff';x.strokeStyle=it.bad?'#ff315f':'#54e5ff';x.fillStyle=it.bad?'#ff315f26':'#54e5ff26';x.lineWidth=2;x.beginPath();it.bad?x.rect(-10,-10,20,20):x.arc(0,0,10,0,7);x.fill();x.stroke();x.restore()});
+      let pulse=1+Math.sin(t*5)*.04;x.fillStyle='#ffffff10';x.beginPath();x.arc(cx,cy,ring*.55*pulse,0,7);x.fill();x.strokeStyle='#d9ff3e';x.lineWidth=2;x.shadowBlur=24;x.shadowColor='#d9ff3e';x.beginPath();x.arc(cx,cy,ring*.34,0,7);x.stroke();x.shadowBlur=0;x.fillStyle='#f4f0e8';x.beginPath();x.arc(cx,cy,9,0,7);x.fill();
+      x.lineCap='round';x.strokeStyle='#54e5ff';x.shadowBlur=24;x.shadowColor='#54e5ff';x.lineWidth=14;x.beginPath();x.arc(cx,cy,ring,angle-.28,angle+.28);x.stroke();x.shadowBlur=0;x.lineWidth=2;x.strokeStyle='#fff';x.beginPath();x.arc(cx,cy,ring,angle-.28,angle+.28);x.stroke();
+      bits.forEach(b=>{x.globalAlpha=Math.max(0,b.life);x.fillStyle=b.color;x.fillRect(b.x,b.y,b.sz,b.sz)});x.globalAlpha=1;x.restore()}
+    function loop(now){let dt=Math.min((now-last)/1000,.033)||0;last=now;if(playing&&!paused)update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+    addEventListener('keydown',e=>{if(e.key==='Escape'){parent.postMessage('togglePause','*');return}keys[e.key]=true;keys[e.key.toLowerCase()]=true;if(e.key==='Enter'&&!playing)reset()});addEventListener('keyup',e=>{keys[e.key]=false;keys[e.key.toLowerCase()]=false});
+    c.addEventListener('pointermove',e=>{targetAngle=Math.atan2(e.clientY-H/2,e.clientX-W/2)});c.addEventListener('pointerdown',e=>{targetAngle=Math.atan2(e.clientY-H/2,e.clientX-W/2)});
+    addEventListener('message',e=>{if(e.data==='pause')paused=true;if(e.data==='resume')paused=false});S('#play').onclick=reset;S('#again').onclick=reset;hud();
+  })();
+  </script>
+</body>
+</html>

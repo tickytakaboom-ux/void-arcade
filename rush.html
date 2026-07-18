@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>GLITCH RUSH — VOID ARCADE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+    :root{--bg:#07080d;--paper:#f4f0e8;--acid:#d9ff3e;--pink:#ff315f;--cyan:#54e5ff;--orange:#ff8a35}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--paper);font-family:'DM Mono',monospace}
+    canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+    .grain{position:fixed;inset:0;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E")}
+    .hud{position:fixed;inset:0;z-index:2;pointer-events:none;padding:26px 32px;display:flex;flex-direction:column;justify-content:space-between}
+    .top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}.brand{font:800 18px Syne;letter-spacing:.12em}.brand i{font-style:normal;color:var(--pink)}.score{text-align:right}.score b{display:block;font:800 34px/.82 Syne}.score small,.tiny{font-size:10px;letter-spacing:.15em;text-transform:uppercase;opacity:.65}.bottom{align-items:flex-end}.dash{width:min(260px,42vw)}.track{height:6px;background:#ffffff20;margin-top:8px}.fill{height:100%;width:100%;background:var(--cyan);box-shadow:0 0 18px var(--cyan)}.status{text-align:right;line-height:1.55;color:#ffffff9a;text-transform:uppercase;font-size:11px;letter-spacing:.08em}
+    .screen{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(7,8,13,.58);backdrop-filter:blur(10px);transition:.3s}.screen.hidden{opacity:0;pointer-events:none}.card{position:relative;width:min(720px,90vw);padding:clamp(28px,6vw,62px);border:1px solid #ffffff25;background:#0b0c13e6;box-shadow:0 28px 90px #0008;overflow:hidden}.card:before{content:'';position:absolute;inset:-40%;background:repeating-linear-gradient(90deg,transparent 0,transparent 44px,#54e5ff13 45px),linear-gradient(120deg,transparent 42%,#ff315f18 50%,transparent 58%);animation:sweep 1.7s linear infinite}.card>*{position:relative}.corner{position:absolute;right:22px;top:18px;color:#ffffff45;font-size:10px;letter-spacing:.14em}.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--pink)}.title{font:800 clamp(56px,12vw,116px)/.74 Syne;letter-spacing:-.08em;margin:28px 0}.title span{display:block;color:transparent;-webkit-text-stroke:1px var(--paper);margin-left:14%}.desc{max-width:520px;color:#c9c7c1;font-size:13px;line-height:1.7}.legend{display:flex;gap:14px;flex-wrap:wrap;margin:30px 0}.key{border:1px solid #ffffff36;padding:8px 10px;font-size:11px}.action{pointer-events:auto;border:0;background:var(--pink);color:#fff;font:800 12px Syne;letter-spacing:.14em;padding:16px 24px;cursor:pointer;box-shadow:6px 6px 0 var(--cyan);transition:.15s}.action:hover{transform:translate(3px,3px);box-shadow:3px 3px 0 var(--cyan)}.final{font:800 58px Syne;margin:16px 0 6px}.best{color:var(--acid);font-size:12px;margin:0 0 28px}@keyframes sweep{to{transform:translateX(28%)}}@media(max-width:600px){.hud{padding:17px}.status{display:none}.score b{font-size:28px}.card{padding:32px 24px}.legend{gap:8px}}
+  </style>
+</head>
+<body>
+  <canvas id="game"></canvas><div class="grain"></div>
+  <div class="hud">
+    <div class="top"><div><div class="brand">GLITCH<i>•</i>RUSH</div><div class="tiny">Tunnel instable / 08</div></div><div class="score"><b id="score">00000</b><small>RECORD <span id="best">00000</span></small></div></div>
+    <div class="bottom"><div class="dash"><span class="tiny">DASH <b id="ready">PRÊT</b></span><div class="track"><div class="fill" id="fill"></div></div></div><div class="status">Portes cyan = points<br>Blocs roses = crash</div></div>
+  </div>
+  <div class="screen" id="start">
+    <div class="card"><span class="corner">DROP_08</span><div class="eyebrow">Tunnel cassé, vitesse inconnue</div><div class="title">GLITCH<span>RUSH</span></div><p class="desc">Le tunnel du vide se déplie en lignes impossibles. Traverse les portes propres, esquive les blocs corrompus et utilise ton dash quand la route devient méchante.</p><div class="legend"><span class="key">Q / D</span><span class="key">← / →</span><span class="key">ESPACE DASH</span><span class="key">TOUCH</span></div><button class="action" id="play">LANCER LE RUSH →</button></div>
+  </div>
+  <div class="screen hidden" id="over">
+    <div class="card"><span class="corner">SYSTEM CRASH</span><div class="eyebrow" id="result">Le tunnel vous a mangé</div><div class="final" id="final">00000</div><div class="best" id="bestmsg">NOUVEAU RECORD</div><button class="action" id="again">RECOMMENCER →</button></div>
+  </div>
+  <script>
+  (()=> {
+    const c=document.querySelector('#game'),x=c.getContext('2d'),S=q=>document.querySelector(q);
+    let W,H,dpr,last=0,t=0,playing=false,paused=false,player,lanes=[],items=[],bits=[],keys={},score=0,best=+(localStorage.rushBest||0),spawn=.7,speed=360,shake=0,dash=100;
+    const scoreEl=S('#score'),bestEl=S('#best'),fill=S('#fill'),ready=S('#ready');bestEl.textContent=pad(best);
+    function pad(n){return Math.floor(n).toString().padStart(5,'0')}function rand(a,b){return a+Math.random()*(b-a)}function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+    function resize(){dpr=Math.min(devicePixelRatio,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0);lanes=[W*.22,W*.39,W*.56,W*.73]}addEventListener('resize',resize);resize();
+    function reset(){playing=true;S('#start').classList.add('hidden');S('#over').classList.add('hidden');player={x:lanes[1],y:H*.78,w:34,h:42,lane:1,inv:0};items=[];bits=[];score=0;spawn=.35;speed=360;shake=0;dash=100;t=0;for(let i=0;i<4;i++)addItem(-i*170);hud();beep(260,.12,'sawtooth')}
+    function addItem(offset=0){let lane=Math.floor(rand(0,lanes.length)),type=Math.random()<.62?'gate':'block';if(score>3000&&Math.random()<.18)type='spark';items.push({lane,x:lanes[lane],y:-80+offset,w:type==='gate'?82:58,h:type==='gate'?34:58,type,spin:rand(0,7)})}
+    function burst(px,py,color,n=18){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),s=rand(1,6);bits.push({x:px,y:py,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,sz:rand(1,4),color})}}
+    let ac;function beep(f,d,type='sine'){try{ac=ac||new AudioContext();let o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.045,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+    function doDash(){if(!playing||dash<100)return;dash=0;player.inv=26;shake=8;burst(player.x,player.y,'#54e5ff',26);beep(150,.08,'square')}
+    function move(dir){if(!playing)return;player.lane=clamp(player.lane+dir,0,lanes.length-1);beep(420,.035,'triangle')}
+    function collide(a,b){return Math.abs(a.x-b.x)<(a.w+b.w)/2&&Math.abs(a.y-b.y)<(a.h+b.h)/2}
+    function end(){playing=false;let isBest=score>best;if(isBest){best=Math.floor(score);localStorage.rushBest=best}bestEl.textContent=pad(best);S('#final').textContent=pad(score);S('#result').textContent=isBest?'Rush stabilisé':'Le tunnel vous a mangé';S('#bestmsg').textContent=isBest?'NOUVEAU RECORD':'RECORD : '+pad(best);setTimeout(()=>S('#over').classList.remove('hidden'),350);beep(70,.22,'sawtooth')}
+    function hud(){scoreEl.textContent=pad(score);fill.style.width=dash+'%';ready.textContent=dash>=100?'PRÊT':Math.floor(dash)+'%'}
+    function update(dt){t+=dt;speed=360+Math.min(score/18,460);dash=Math.min(100,dash+dt*18);player.inv=Math.max(0,player.inv-dt*60);let target=lanes[player.lane];player.x+=(target-player.x)*Math.min(1,dt*14);
+      if(keys.ArrowLeft||keys.q||keys.a){keys.ArrowLeft=keys.q=keys.a=false;move(-1)}if(keys.ArrowRight||keys.d){keys.ArrowRight=keys.d=false;move(1)}
+      spawn-=dt;if(spawn<=0){addItem();spawn=Math.max(.22,.58-score/26000)}
+      items.forEach((it,i)=>{it.y+=speed*dt;it.spin+=dt*3;if(it.y>H+90)items.splice(i,1);if(collide(player,it)){if(it.type==='block'){if(player.inv>0){score+=180;burst(it.x,it.y,'#ff315f',22);items.splice(i,1);shake=10;beep(90,.08,'square')}else{burst(player.x,player.y,'#f4f0e8',50);shake=24;end()}}else{score+=it.type==='spark'?650:330;dash=Math.min(100,dash+(it.type==='spark'?34:15));burst(it.x,it.y,it.type==='spark'?'#d9ff3e':'#54e5ff',18);items.splice(i,1);beep(it.type==='spark'?680:520,.05,'triangle')}}});
+      bits.forEach((b,i)=>{b.x+=b.vx*dt*60;b.y+=b.vy*dt*60;b.vx*=.96;b.vy*=.96;b.life-=dt*1.8;if(b.life<=0)bits.splice(i,1)});score+=dt*18;shake*=.88;hud()}
+    function draw(){x.save();x.clearRect(0,0,W,H);x.fillStyle='#07080d';x.fillRect(0,0,W,H);let ox=shake?rand(-shake,shake):0,oy=shake?rand(-shake,shake):0;x.translate(ox,oy);
+      let van={x:W/2,y:H*.18};x.strokeStyle='#ffffff12';x.lineWidth=1;for(let l of lanes){x.beginPath();x.moveTo(van.x,van.y);x.lineTo(l,H+80);x.stroke()}for(let i=0;i<22;i++){let y=((t*speed*.45+i*70)%(H+140))-80,scale=(y-van.y)/(H-van.y);x.strokeStyle=i%4===0?'#ff315f28':'#54e5ff12';x.beginPath();x.moveTo(W/2-420*scale,y);x.lineTo(W/2+420*scale,y);x.stroke()}
+      items.forEach(it=>{x.save();x.translate(it.x,it.y);x.rotate(it.type==='spark'?it.spin:0);x.lineWidth=2;if(it.type==='block'){x.fillStyle='#ff315f28';x.strokeStyle='#ff315f';x.shadowColor='#ff315f'}else if(it.type==='spark'){x.fillStyle='#d9ff3e30';x.strokeStyle='#d9ff3e';x.shadowColor='#d9ff3e'}else{x.fillStyle='#54e5ff18';x.strokeStyle='#54e5ff';x.shadowColor='#54e5ff'}x.shadowBlur=18;x.beginPath();if(it.type==='gate'){x.rect(-it.w/2,-it.h/2,it.w,it.h)}else if(it.type==='spark'){for(let i=0;i<6;i++){let a=i/6*Math.PI*2;x.lineTo(Math.cos(a)*20,Math.sin(a)*20)}x.closePath()}else{x.rect(-it.w/2,-it.h/2,it.w,it.h)}x.fill();x.stroke();x.restore()});
+      x.save();x.translate(player.x,player.y);x.shadowBlur=player.inv?28:18;x.shadowColor=player.inv?'#54e5ff':'#f4f0e8';x.fillStyle=player.inv?'#54e5ff':'#f4f0e8';x.beginPath();x.moveTo(0,-player.h/2);x.lineTo(player.w/2,player.h/2);x.lineTo(0,player.h*.28);x.lineTo(-player.w/2,player.h/2);x.closePath();x.fill();x.strokeStyle='#07080d';x.lineWidth=2;x.stroke();x.restore();
+      bits.forEach(b=>{x.globalAlpha=Math.max(0,b.life);x.fillStyle=b.color;x.fillRect(b.x,b.y,b.sz,b.sz)});x.globalAlpha=1;x.restore()}
+    function loop(now){let dt=Math.min((now-last)/1000,.033)||0;last=now;if(playing&&!paused)update(dt);draw();requestAnimationFrame(loop)}requestAnimationFrame(loop);
+    addEventListener('keydown',e=>{if(e.key==='Escape'){parent.postMessage('togglePause','*');return}keys[e.key]=true;keys[e.key.toLowerCase()]=true;if(e.code==='Space'){e.preventDefault();doDash()}if(e.key==='Enter'&&!playing)reset()});
+    c.addEventListener('pointerdown',e=>{if(!playing)return;let third=W/3;if(e.clientY>H*.62&&Math.abs(e.clientX-player.x)<60)doDash();else move(e.clientX<third?-1:e.clientX>third*2?1:0)});
+    c.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'&&playing){let nearest=0,bd=Infinity;lanes.forEach((l,i)=>{let d=Math.abs(e.clientX-l);if(d<bd){bd=d;nearest=i}});player.lane=nearest}});
+    addEventListener('message',e=>{if(e.data==='pause')paused=true;if(e.data==='resume')paused=false});S('#play').onclick=reset;S('#again').onclick=reset;hud();
+  })();
+  </script>
+</body>
+</html>
